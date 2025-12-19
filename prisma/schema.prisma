@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GitHubStatus {
+  open
+  closed
+}
+
+enum WorkflowStatus {
+  pending
+  in_process
+  end
+}
+
+model Issue {
+  id               String         @id @default(cuid())
+  githubNumber     Int            @map("github_number")
+  repository       String
+  title            String
+  description      String?
+  statusGithub     GitHubStatus   @default(open) @map("status_github")
+  workflowStatus   WorkflowStatus @default(pending) @map("workflow_status")
+  url              String
+  labels           Json?          @default("[]")
+  createdAtGithub  DateTime       @map("created_at_github")
+  updatedAtGithub  DateTime       @map("updated_at_github")
+  selectedContext  String?        @map("selected_context")
+  prompt           String?
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@unique([githubNumber, repository])
+  @@map("issues")
+}
