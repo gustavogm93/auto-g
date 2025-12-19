@@ -25,6 +25,7 @@ cp .env.example .env
 ```
 
 Editar `.env`:
+
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/auto_g?schema=public"
 GH_TOKEN="tu_github_token_aqui"
@@ -60,21 +61,21 @@ La app estará disponible en `http://localhost:3000`
 
 ### Modelo `Issue`
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | STRING | PK auto-generado |
-| `github_number` | INT | Número del issue en GitHub |
-| `repository` | TEXT | owner/repo |
-| `title` | TEXT | Título del issue |
-| `description` | TEXT | Descripción/body |
-| `status_github` | ENUM | `open` \| `closed` |
-| `workflow_status` | ENUM | `pending` \| `in_process` \| `end` |
-| `url` | TEXT | URL al issue en GitHub |
-| `labels` | JSONB | Array de labels |
-| `selected_context` | ENUM | Contexto seleccionado |
-| `prompt` | TEXT | Prompt personalizado |
-| `created_at_github` | TIMESTAMP | Fecha creación en GitHub |
-| `updated_at_github` | TIMESTAMP | Fecha actualización en GitHub |
+| Campo               | Tipo      | Descripción                        |
+| ------------------- | --------- | ---------------------------------- |
+| `id`                | STRING    | PK auto-generado                   |
+| `github_number`     | INT       | Número del issue en GitHub         |
+| `repository`        | TEXT      | owner/repo                         |
+| `title`             | TEXT      | Título del issue                   |
+| `description`       | TEXT      | Descripción/body                   |
+| `status_github`     | ENUM      | `open` \| `closed`                 |
+| `workflow_status`   | ENUM      | `pending` \| `in_process` \| `end` |
+| `url`               | TEXT      | URL al issue en GitHub             |
+| `labels`            | JSONB     | Array de labels                    |
+| `selected_context`  | ENUM      | Contexto seleccionado              |
+| `prompt`            | TEXT      | Prompt personalizado               |
+| `created_at_github` | TIMESTAMP | Fecha creación en GitHub           |
+| `updated_at_github` | TIMESTAMP | Fecha actualización en GitHub      |
 
 ## 🔌 API Endpoints
 
@@ -83,6 +84,7 @@ La app estará disponible en `http://localhost:3000`
 Lista issues con filtros y paginación.
 
 Query params:
+
 - `repository`: Filtrar por repo
 - `workflowStatus`: `pending` | `in_process` | `end`
 - `statusGithub`: `open` | `closed`
@@ -94,6 +96,7 @@ Query params:
 Inicia el procesamiento de un issue.
 
 Body:
+
 ```json
 {
   "selectedContext": "checkout-api",
@@ -102,6 +105,7 @@ Body:
 ```
 
 Contextos disponibles:
+
 - `checkout-api`
 - `transparent-checkout`
 - `buyer3`

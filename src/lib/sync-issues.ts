@@ -1,22 +1,22 @@
-import { prisma } from './prisma'
-import { GitHubStatus, WorkflowStatus } from '@prisma/client'
+import { GitHubStatus, WorkflowStatus } from "@prisma/client";
+import { prisma } from "./prisma";
 
 interface GitHubIssue {
-  number: number
-  title: string
-  body: string | null
-  state: 'open' | 'closed'
-  html_url: string
-  labels: Array<{ name: string }>
-  created_at: string
-  updated_at: string
-  repository_url: string
+  number: number;
+  title: string;
+  body: string | null;
+  state: "open" | "closed";
+  html_url: string;
+  labels: Array<{ name: string }>;
+  created_at: string;
+  updated_at: string;
+  repository_url: string;
 }
 
 interface SyncResult {
-  created: number
-  updated: number
-  errors: string[]
+  created: number;
+  updated: number;
+  errors: string[];
 }
 
 /**
@@ -24,8 +24,8 @@ interface SyncResult {
  * e.g., "https://api.github.com/repos/owner/repo" -> "owner/repo"
  */
 function extractRepoFromUrl(repoUrl: string): string {
-  const match = repoUrl.match(/repos\/(.+)$/)
-  return match ? match[1] : repoUrl
+  const match = repoUrl.match(/repos\/(.+)$/);
+  return match ? match[1] : repoUrl;
 }
 
 /**
@@ -36,38 +36,40 @@ async function fetchIssuesFromRepo(
   repo: string,
   token: string
 ): Promise<GitHubIssue[]> {
-  const issues: GitHubIssue[] = []
-  let page = 1
-  const perPage = 100
+  const issues: GitHubIssue[] = [];
+  let page = 1;
+  const perPage = 100;
 
   while (true) {
-    const url = `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}`
-    
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}`;
+
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `GitHub API error: ${response.status} ${response.statusText}`
+      );
     }
 
-    const data: GitHubIssue[] = await response.json()
-    
+    const data: GitHubIssue[] = await response.json();
+
     // Filter out pull requests (they also appear in the issues endpoint)
-    const issuesOnly = data.filter((item) => !('pull_request' in item))
-    issues.push(...issuesOnly)
+    const issuesOnly = data.filter((item) => !("pull_request" in item));
+    issues.push(...issuesOnly);
 
     if (data.length < perPage) {
-      break
+      break;
     }
-    page++
+    page++;
   }
 
-  return issues
+  return issues;
 }
 
 /**
@@ -76,9 +78,9 @@ async function fetchIssuesFromRepo(
 async function syncIssue(
   issue: GitHubIssue,
   repository: string
-): Promise<'created' | 'updated'> {
-  const githubStatus: GitHubStatus = issue.state === 'open' ? 'open' : 'closed'
-  const labels = issue.labels.map((l) => l.name)
+): Promise<"created" | "updated"> {
+  const githubStatus: GitHubStatus = issue.state === "open" ? "open" : "closed";
+  const labels = issue.labels.map((l) => l.name);
 
   // Check if issue exists
   const existing = await prisma.issue.findUnique({
@@ -88,11 +90,12 @@ async function syncIssue(
         repository,
       },
     },
-  })
+  });
 
   if (!existing) {
     // Create new issue
-    const workflowStatus: WorkflowStatus = githubStatus === 'closed' ? 'end' : 'pending'
+    const workflowStatus: WorkflowStatus =
+      githubStatus === "closed" ? "end" : "pending";
 
     await prisma.issue.create({
       data: {
@@ -107,21 +110,21 @@ async function syncIssue(
         createdAtGithub: new Date(issue.created_at),
         updatedAtGithub: new Date(issue.updated_at),
       },
-    })
+    });
 
-    return 'created'
+    return "created";
   }
 
   // Update existing issue
-  let newWorkflowStatus = existing.workflowStatus
+  let newWorkflowStatus = existing.workflowStatus;
 
   // Rule: if GitHub says closed, force workflow_status = end
-  if (githubStatus === 'closed') {
-    newWorkflowStatus = 'end'
+  if (githubStatus === "closed") {
+    newWorkflowStatus = "end";
   }
   // If it was end but now open again, reset to pending
-  else if (existing.statusGithub === 'closed' && githubStatus === 'open') {
-    newWorkflowStatus = 'pending'
+  else if (existing.statusGithub === "closed" && githubStatus === "open") {
+    newWorkflowStatus = "pending";
   }
   // Otherwise, keep the existing workflow status
 
@@ -136,79 +139,81 @@ async function syncIssue(
       labels,
       updatedAtGithub: new Date(issue.updated_at),
     },
-  })
+  });
 
-  return 'updated'
+  return "updated";
 }
 
 /**
  * Main sync function - fetches issues from configured repos and syncs to DB
  */
 export async function syncIssuesFromGitHub(): Promise<SyncResult> {
-  const token = process.env.GH_TOKEN
-  const reposConfig = process.env.GH_REPOS
+  const token = process.env.GH_TOKEN;
+  const reposConfig = process.env.GH_REPOS;
 
   if (!token) {
-    throw new Error('GH_TOKEN environment variable is not set')
+    throw new Error("GH_TOKEN environment variable is not set");
   }
 
   if (!reposConfig) {
-    throw new Error('GH_REPOS environment variable is not set')
+    throw new Error("GH_REPOS environment variable is not set");
   }
 
-  const repos = reposConfig.split(',').map((r) => r.trim())
-  const result: SyncResult = { created: 0, updated: 0, errors: [] }
+  const repos = reposConfig.split(",").map((r) => r.trim());
+  const result: SyncResult = { created: 0, updated: 0, errors: [] };
 
   for (const repo of repos) {
-    const [owner, repoName] = repo.split('/')
-    
+    const [owner, repoName] = repo.split("/");
+
     if (!owner || !repoName) {
-      result.errors.push(`Invalid repo format: ${repo}`)
-      continue
+      result.errors.push(`Invalid repo format: ${repo}`);
+      continue;
     }
 
     try {
-      console.log(`🔄 Syncing ${repo}...`)
-      const issues = await fetchIssuesFromRepo(owner, repoName, token)
-      console.log(`   Found ${issues.length} issues`)
+      console.log(`🔄 Syncing ${repo}...`);
+      const issues = await fetchIssuesFromRepo(owner, repoName, token);
+      console.log(`   Found ${issues.length} issues`);
 
       for (const issue of issues) {
         try {
-          const action = await syncIssue(issue, repo)
-          if (action === 'created') result.created++
-          else result.updated++
+          const action = await syncIssue(issue, repo);
+          if (action === "created") result.created++;
+          else result.updated++;
         } catch (err) {
-          const msg = `Error syncing issue #${issue.number} from ${repo}: ${err instanceof Error ? err.message : 'Unknown error'}`
-          console.error(msg)
-          result.errors.push(msg)
+          const msg = `Error syncing issue #${issue.number} from ${repo}: ${err instanceof Error ? err.message : "Unknown error"}`;
+          console.error(msg);
+          result.errors.push(msg);
         }
       }
 
-      console.log(`   ✅ Synced ${repo}`)
+      console.log(`   ✅ Synced ${repo}`);
     } catch (err) {
-      const msg = `Error fetching issues from ${repo}: ${err instanceof Error ? err.message : 'Unknown error'}`
-      console.error(msg)
-      result.errors.push(msg)
+      const msg = `Error fetching issues from ${repo}: ${err instanceof Error ? err.message : "Unknown error"}`;
+      console.error(msg);
+      result.errors.push(msg);
     }
   }
 
-  console.log(`\n📊 Sync complete: ${result.created} created, ${result.updated} updated`)
+  console.log(
+    `\n📊 Sync complete: ${result.created} created, ${result.updated} updated`
+  );
   if (result.errors.length > 0) {
-    console.log(`⚠️  ${result.errors.length} errors occurred`)
+    console.log(`⚠️  ${result.errors.length} errors occurred`);
   }
 
-  return result
+  return result;
 }
 
 // Allow running as a standalone script
 if (require.main === module) {
   syncIssuesFromGitHub()
     .then((result) => {
-      console.log('Result:', result)
-      process.exit(0)
+      console.log("Result:", result);
+      process.exit(0);
     })
     .catch((err) => {
-      console.error('Sync failed:', err)
-      process.exit(1)
-    })
+      console.error("Sync failed:", err);
+      process.exit(1);
+    });
 }

@@ -1,5 +1,5 @@
-import { IssueList } from '@/components/IssueList'
-import { Header } from '@/components/Header'
+import { Header } from "@/components/Header";
+import { IssueList } from "@/components/IssueList";
 
 export default function Home() {
   return (
@@ -9,5 +9,5 @@ export default function Home() {
         <IssueList />
       </div>
     </main>
-  )
+  );
 }

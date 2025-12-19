@@ -1,93 +1,106 @@
-'use client'
+"use client";
 
-import { useState, useMemo } from 'react'
-import { ExternalLink, ChevronDown, ChevronUp, Play, Loader2 } from 'lucide-react'
-import clsx from 'clsx'
-import type { Issue, WorkflowStatus } from '@/types/issue'
+import type { Issue, WorkflowStatus } from "@/types/issue";
+import clsx from "clsx";
+import {
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Loader2,
+  Play,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
 interface IssueCardProps {
-  issue: Issue
-  isExpanded: boolean
-  onToggle: () => void
-  onUpdate: (issue: Issue) => void
+  issue: Issue;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onUpdate: (issue: Issue) => void;
 }
 
 // Get services from env var
 function getServiceOptions() {
-  const servicesEnv = process.env.NEXT_PUBLIC_SERVICES || ''
+  const servicesEnv = process.env.NEXT_PUBLIC_SERVICES || "";
   if (!servicesEnv) {
-    return [{ value: 'default', label: 'default' }]
+    return [{ value: "default", label: "default" }];
   }
-  return servicesEnv.split(',').map((s) => {
-    const trimmed = s.trim()
-    return { value: trimmed, label: trimmed }
-  })
+  return servicesEnv.split(",").map((s) => {
+    const trimmed = s.trim();
+    return { value: trimmed, label: trimmed };
+  });
 }
 
-const workflowStatusStyles: Record<WorkflowStatus, { bg: string; text: string; label: string }> = {
-  pending: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Pending' },
-  in_process: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'In Process' },
-  end: { bg: 'bg-green-100', text: 'text-green-800', label: 'End' },
-}
+const workflowStatusStyles: Record<
+  WorkflowStatus,
+  { bg: string; text: string; label: string }
+> = {
+  pending: { bg: "bg-amber-100", text: "text-amber-800", label: "Pending" },
+  in_process: { bg: "bg-blue-100", text: "text-blue-800", label: "In Process" },
+  end: { bg: "bg-green-100", text: "text-green-800", label: "End" },
+};
 
-export function IssueCard({ issue, isExpanded, onToggle, onUpdate }: IssueCardProps) {
-  const serviceOptions = useMemo(() => getServiceOptions(), [])
-  const [selectedContext, setSelectedContext] = useState(serviceOptions[0]?.value || '')
-  const [prompt, setPrompt] = useState('')
-  const [isStarting, setIsStarting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function IssueCard({
+  issue,
+  isExpanded,
+  onToggle,
+  onUpdate,
+}: IssueCardProps) {
+  const serviceOptions = useMemo(() => getServiceOptions(), []);
+  const [selectedContext, setSelectedContext] = useState(
+    serviceOptions[0]?.value || ""
+  );
+  const [prompt, setPrompt] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const workflowStyle = workflowStatusStyles[issue.workflowStatus]
-  const isGithubOpen = issue.statusGithub === 'open'
-  const canStart = issue.workflowStatus === 'pending' && isGithubOpen
+  const workflowStyle = workflowStatusStyles[issue.workflowStatus];
+  const isGithubOpen = issue.statusGithub === "open";
+  const canStart = issue.workflowStatus === "pending" && isGithubOpen;
 
   const handleStart = async () => {
-    if (!canStart) return
-    
-    setIsStarting(true)
-    setError(null)
+    if (!canStart) return;
+
+    setIsStarting(true);
+    setError(null);
 
     try {
       const response = await fetch(`/api/issues/${issue.id}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           selectedContext,
           prompt: prompt.trim() || undefined,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to start issue')
+        const data = await response.json();
+        throw new Error(data.error || "Failed to start issue");
       }
 
-      const updatedIssue = await response.json()
-      onUpdate(updatedIssue)
+      const updatedIssue = await response.json();
+      onUpdate(updatedIssue);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setIsStarting(false)
+      setIsStarting(false);
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       {/* Card Header */}
-      <div
-        className="p-4 cursor-pointer"
-        onClick={onToggle}
-      >
+      <div className="p-4 cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -107,19 +120,19 @@ export function IssueCard({ issue, isExpanded, onToggle, onUpdate }: IssueCardPr
             {/* GitHub Status */}
             <span
               className={clsx(
-                'text-xs px-2 py-1 rounded-full font-medium',
+                "text-xs px-2 py-1 rounded-full font-medium",
                 isGithubOpen
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-purple-100 text-purple-800'
+                  ? "bg-green-100 text-green-800"
+                  : "bg-purple-100 text-purple-800"
               )}
             >
-              {isGithubOpen ? 'Open' : 'Closed'}
+              {isGithubOpen ? "Open" : "Closed"}
             </span>
 
             {/* Workflow Status */}
             <span
               className={clsx(
-                'text-xs px-2 py-1 rounded-full font-medium',
+                "text-xs px-2 py-1 rounded-full font-medium",
                 workflowStyle.bg,
                 workflowStyle.text
               )}
@@ -170,23 +183,25 @@ export function IssueCard({ issue, isExpanded, onToggle, onUpdate }: IssueCardPr
           )}
 
           {/* Labels */}
-          {issue.labels && Array.isArray(issue.labels) && issue.labels.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Labels
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {issue.labels.map((label, idx) => (
-                  <span
-                    key={idx}
-                    className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded"
-                  >
-                    {String(label)}
-                  </span>
-                ))}
+          {issue.labels &&
+            Array.isArray(issue.labels) &&
+            issue.labels.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Labels
+                </label>
+                <div className="flex flex-wrap gap-1">
+                  {issue.labels.map((label, idx) => (
+                    <span
+                      key={idx}
+                      className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded"
+                    >
+                      {String(label)}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Current Context & Prompt (if already set) */}
           {issue.selectedContext && (
@@ -269,13 +284,17 @@ export function IssueCard({ issue, isExpanded, onToggle, onUpdate }: IssueCardPr
             </div>
           )}
 
-          {!canStart && issue.workflowStatus !== 'pending' && (
+          {!canStart && issue.workflowStatus !== "pending" && (
             <p className="text-sm text-gray-500 italic">
-              This issue is already {issue.workflowStatus === 'in_process' ? 'in process' : 'completed'}.
+              This issue is already{" "}
+              {issue.workflowStatus === "in_process"
+                ? "in process"
+                : "completed"}
+              .
             </p>
           )}
 
-          {!canStart && !isGithubOpen && issue.workflowStatus === 'pending' && (
+          {!canStart && !isGithubOpen && issue.workflowStatus === "pending" && (
             <p className="text-sm text-gray-500 italic">
               This issue is closed on GitHub.
             </p>
@@ -283,5 +302,5 @@ export function IssueCard({ issue, isExpanded, onToggle, onUpdate }: IssueCardPr
         </div>
       )}
     </div>
-  )
+  );
 }
